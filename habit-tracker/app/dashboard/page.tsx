@@ -1,4 +1,5 @@
 "use client"
+import Link from "next/link"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
@@ -45,8 +46,13 @@ export default function Dashboard() {
         <div className="md:col-span-2 space-y-4">
           <div className="flex items-center justify-between">
             <h2 className="text-2xl font-bold">My Habits</h2>
+
             {/* 4. Connect Input and Button to State */}
             <div className="flex gap-2">
+                <Button variant="outline" asChild>
+      <Link href="/track">Track Success</Link>
+    </Button>
+            
               <Input 
                 placeholder="New habit..." 
                 className="w-40 md:w-64" 
