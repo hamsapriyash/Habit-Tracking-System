@@ -7,44 +7,77 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default function TrackingPage() {
-  const habits = ["Sleep (7hrs+)", "Drink Water", "Exercise", "Coding Practice"]
-  const days = Array.from({ length: 31 }, (_, i) => i + 1)
+  // In Phase 2, you will fetch these habits from MongoDB
+  const [habits] = useState([
+    { id: 1, name: "Studies" },
+    { id: 2, name: "Exercise" }
+  ]);
+
+  const days = Array.from({ length: 31 }, (_, i) => i + 1);
 
   return (
-    <div className="p-4 md:p-8 max-w-7xl mx-auto">
-      <div className="flex items-center gap-4 mb-6">
-        <Button variant="ghost" asChild>
-          <Link href="/dashboard"><ArrowLeft className="mr-2 h-4 w-4" /> Back</Link>
+    <div className="flex flex-col min-h-screen bg-white pb-10 w-full overflow-x-hidden">
+      {/* Header Section */}
+      <div className="p-4 md:p-8 flex items-center gap-4 bg-slate-50 border-b">
+        <Button variant="ghost" size="icon" asChild>
+          <Link href="/dashboard"><ArrowLeft className="h-6 w-6" /></Link>
         </Button>
-        <h1 className="text-3xl font-bold">Success Tracker - May 2026</h1>
+        <div>
+          <h1 className="text-xl md:text-2xl font-black text-slate-800">Success Tracker</h1>
+          <p className="text-xs font-bold text-purple-600 uppercase tracking-widest">May 2026</p>
+        </div>
       </div>
 
-      <Card className="overflow-x-auto">
-        <CardHeader>
-          <CardTitle>Getting 1% Better Each Day</CardTitle>
-        </CardHeader>
-        <CardContent>
-          <div className="min-w-[800px]">
-            {/* Header Row with Days */}
-            <div className="grid grid-cols-[150px_repeat(31,1fr)] border-b pb-2 mb-2 font-bold text-center">
-              <div>Habit/Rule</div>
-              {days.map(day => <div key={day} className="text-xs">{day}</div>)}
-            </div>
+      <div className="p-4 md:p-8">
+        <Card className="shadow-xl border-none ring-1 ring-slate-200 overflow-hidden">
+          <CardHeader className="bg-slate-50/50 border-b">
+            <CardTitle className="text-sm md:text-base font-bold text-slate-500">
+              Getting 1% Better Each Day
+            </CardTitle>
+          </CardHeader>
+          
+          <CardContent className="p-0">
+            {/* The scrollable container for the 31-day matrix */}
+            <div className="overflow-x-auto">
+              <div className="inline-block min-w-full align-middle">
+                
+                {/* Header Row */}
+                <div className="grid grid-cols-[120px_repeat(31,40px)] md:grid-cols-[200px_repeat(31,1fr)] border-b bg-slate-50/30">
+                  <div className="sticky left-0 z-10 bg-slate-50 p-4 text-xs font-black text-slate-400 border-r">
+                    HABITS
+                  </div>
+                  {days.map(day => (
+                    <div key={day} className="p-4 text-center text-[10px] md:text-xs font-bold text-slate-400">
+                      {day}
+                    </div>
+                  ))}
+                </div>
 
-            {/* Habit Rows */}
-            {habits.map((habit, index) => (
-              <div key={index} className="grid grid-cols-[150px_repeat(31,1fr)] items-center border-b py-2 text-center hover:bg-muted/50">
-                <div className="text-left font-medium text-sm">{habit}</div>
-                {days.map(day => (
-                  <div key={day} className="flex justify-center">
-                    <Checkbox className="h-4 w-4" />
+                {/* Habit Rows: These show the "Exact Habits" from your dashboard */}
+                {habits.map((habit) => (
+                  <div key={habit.id} className="grid grid-cols-[120px_repeat(31,40px)] md:grid-cols-[200px_repeat(31,1fr)] items-center border-b hover:bg-slate-50/50 transition-colors">
+                    {/* Sticky Column: The Habit Name */}
+                    <div className="sticky left-0 z-10 bg-white p-4 text-sm font-black text-slate-700 border-r shadow-[4px_0_8px_-4px_rgba(0,0,0,0.1)]">
+                      {habit.name}
+                    </div>
+                    {/* Checkbox Grid */}
+                    {days.map(day => (
+                      <div key={day} className="flex justify-center p-2">
+                        <Checkbox className="h-5 w-5 rounded-md border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600" />
+                      </div>
+                    ))}
                   </div>
                 ))}
+
               </div>
-            ))}
-          </div>
-        </CardContent>
-      </Card>
+            </div>
+          </CardContent>
+        </Card>
+        
+        <p className="mt-6 text-center text-xs text-slate-400 font-medium px-4">
+          Tip: Swipe left on the table to see all 31 days[cite: 2].
+        </p>
+      </div>
     </div>
   )
 }
