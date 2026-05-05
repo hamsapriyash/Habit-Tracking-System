@@ -6,15 +6,19 @@ export async function POST(req: Request) {
   try {
     const { email, password, username } = await req.json()
 
-    // This line will stop showing an error after 'prisma generate'
-    const existingUser = await prisma.user.findUnique({ where: { email } })
+    // 1. Check if user already exists
+    const existingUser = await prisma.user.findUnique({ 
+      where: { email } 
+    })
     
     if (existingUser) {
       return NextResponse.json({ error: "User already exists" }, { status: 400 })
     }
 
+    // 2. Hash the password for security
     const hashedPassword = await bcrypt.hash(password, 10)
 
+    // 3. Create the user in MongoDB
     const newUser = await prisma.user.create({
       data: {
         email,
@@ -23,8 +27,12 @@ export async function POST(req: Request) {
       }
     })
 
-    return NextResponse.json({ message: "User created" }, { status: 201 })
+    return NextResponse.json({ 
+      message: "User created successfully",
+      userId: newUser.id
+    }, { status: 201 })
   } catch (error) {
+    console.error("Signup Error:", error)
     return NextResponse.json({ error: "Signup failed" }, { status: 500 })
   }
 }

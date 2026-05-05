@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect} from "react"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, User, Flame, Plus } from "lucide-react"
+import { LayoutGrid, User, Flame, Plus, Pencil, Trash2 } from "lucide-react"
 import Link from "next/link"
 interface Habit {
   id: string;
@@ -13,13 +13,29 @@ interface Habit {
 export default function FullStackDashboard() {
 const [habits, setHabits] = useState<Habit[]>([]);
   const [loading, setLoading] = useState(true)
+  const [showAddCard, setShowAddCard] = useState(false);
+  const [newHabitName, setNewHabitName] = useState("");
+  const [newHabitTime, setNewHabitTime] = useState("");
+  const [newHabitAmPm, setNewHabitAmPm] = useState("AM");
+  const [editHabitId, setEditHabitId] = useState<string | null>(null);
   
     useEffect(() => {
     async function fetchHabits() {
       try {
-        const response = await fetch("/api/habits")
+        const userId = localStorage.getItem("userId");
+        if (!userId || userId === "undefined") {
+          setLoading(false);
+          return;
+        }
+        
+        const response = await fetch(`/api/habits?userId=${userId}`)
         const data = await response.json()
-        setHabits(data)
+        if (Array.isArray(data)) {
+          setHabits(data)
+        } else {
+          console.error("Failed to fetch habits, got non-array:", data)
+          setHabits([])
+        }
       } catch (error) {
         console.error("Failed to load habits:", error)
       } finally {
@@ -29,27 +45,82 @@ const [habits, setHabits] = useState<Habit[]>([]);
     fetchHabits()
   }, [])
 
-  // 2. Add Habit logic
-  const handleAddHabit = async () => {
-    const name = prompt("Enter habit name:")
-    if (!name) return
-
-    const time = prompt("Enter time (e.g., 07:00 PM):", "Anytime")
+  const submitHabit = async () => {
+    if (!newHabitName) return;
+    
+    let finalTime = "Anytime";
+    if (newHabitTime) {
+      // Just combine the user's typed time with the AM/PM dropdown
+      finalTime = `${newHabitTime} ${newHabitAmPm}`;
+    }
     
     try {
-      const response = await fetch("/api/habits", {
-        method: "POST",
+      const userId = localStorage.getItem("userId");
+      if (!userId || userId === "undefined") {
+        alert("Please log in to add a habit");
+        return;
+      }
+
+      const method = editHabitId ? "PUT" : "POST";
+      const url = editHabitId ? `/api/habits/${editHabitId}` : "/api/habits";
+
+      const response = await fetch(url, {
+        method,
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, time }),
+        body: JSON.stringify({ name: newHabitName, time: finalTime, userId }),
       })
 
       if (response.ok) {
-        const newHabit = await response.json()
-        setHabits((prev) => [...prev, newHabit])
+        const savedHabit = await response.json()
+        if (editHabitId) {
+          setHabits((prev) => prev.map((h) => (h.id === editHabitId ? savedHabit : h)));
+        } else {
+          setHabits((prev) => Array.isArray(prev) ? [...prev, savedHabit] : [savedHabit])
+        }
+        setShowAddCard(false);
+        setNewHabitName("");
+        setNewHabitTime("");
+        setEditHabitId(null);
+      } else {
+        const errData = await response.json().catch(() => null);
+        console.error("API Error:", errData);
+        alert(`Failed to create habit: ${errData?.error || response.statusText}`);
       }
     } catch (error) {
+      console.error("Fetch Error:", error);
       alert("Error saving to database.")
     }
+  };
+
+  const deleteHabit = async (id: string) => {
+    if (!confirm("Are you sure you want to delete this habit?")) return;
+    try {
+      const response = await fetch(`/api/habits/${id}`, { method: "DELETE" });
+      if (response.ok) {
+        setHabits((prev) => prev.filter((h) => h.id !== id));
+      } else {
+        alert("Failed to delete habit");
+      }
+    } catch (error) {
+      alert("Error deleting habit");
+    }
+  };
+
+  const openEditHabit = (habit: Habit) => {
+    setEditHabitId(habit.id);
+    setNewHabitName(habit.name);
+    
+    // Parse time (e.g. "07:00 AM")
+    if (habit.time && habit.time !== "Anytime") {
+      const parts = habit.time.split(" ");
+      setNewHabitTime(parts[0] || "");
+      setNewHabitAmPm(parts[1] || "AM");
+    } else {
+      setNewHabitTime("");
+      setNewHabitAmPm("AM");
+    }
+    
+    setShowAddCard(true);
   };
 
   return (
@@ -86,13 +157,25 @@ const [habits, setHabits] = useState<Habit[]>([]);
   ) : habits && habits.length > 0 ? (
     /* 2. Only map if habits exists and has items */
     habits.map((habit) => (
-      <div key={habit.id} className="flex flex-col border-b border-slate-100 pb-4">
-        <span className="text-xl md:text-3xl font-bold text-slate-900">
-          {habit.name}
-        </span>
-        <span className="text-xs text-gray-400 uppercase tracking-widest mt-1">
-          {habit.time}
-        </span>
+      <div key={habit.id} className="flex flex-col border-b border-slate-100 pb-4 relative group">
+        <div className="flex justify-between items-start">
+          <div className="flex flex-col">
+            <span className="text-xl md:text-3xl font-bold text-slate-900">
+              {habit.name}
+            </span>
+            <span className="text-xs text-gray-400 uppercase tracking-widest mt-1">
+              {habit.time}
+            </span>
+          </div>
+          <div className="flex gap-2 opacity-100 md:opacity-0 group-hover:opacity-100 transition-opacity">
+            <button onClick={() => openEditHabit(habit)} className="p-2 text-slate-400 hover:text-purple-600 bg-slate-50 hover:bg-purple-50 rounded-full transition-colors">
+              <Pencil className="w-4 h-4" />
+            </button>
+            <button onClick={() => deleteHabit(habit.id)} className="p-2 text-slate-400 hover:text-red-600 bg-slate-50 hover:bg-red-50 rounded-full transition-colors">
+              <Trash2 className="w-4 h-4" />
+            </button>
+          </div>
+        </div>
       </div>
     ))
   ) : (
@@ -101,6 +184,55 @@ const [habits, setHabits] = useState<Habit[]>([]);
   )}
 </div>
       </main>
+
+      {/* Add Habit Modal Card */}
+      {showAddCard && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-[100] px-4">
+          <div className="bg-white p-6 rounded-xl shadow-2xl w-full max-w-sm flex flex-col gap-4 animate-in fade-in zoom-in duration-200">
+            <h3 className="text-xl font-bold text-slate-800">{editHabitId ? "Edit Habit" : "Add New Habit"}</h3>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-bold text-slate-500">Habit Name</label>
+              <input 
+                type="text" 
+                placeholder="e.g., Drink Water"
+                value={newHabitName}
+                onChange={(e) => setNewHabitName(e.target.value)}
+                className="border p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600"
+                autoFocus
+              />
+            </div>
+            
+            <div className="flex flex-col gap-1">
+              <label className="text-sm font-bold text-slate-500">Time (Optional)</label>
+              <div className="flex gap-2">
+                <input 
+                  type="text" 
+                  placeholder="e.g., 07:00"
+                  value={newHabitTime}
+                  onChange={(e) => setNewHabitTime(e.target.value)}
+                  className="border p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 flex-1"
+                />
+                <select 
+                  value={newHabitAmPm}
+                  onChange={(e) => setNewHabitAmPm(e.target.value)}
+                  className="border p-2 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-600 bg-white"
+                >
+                  <option value="AM">AM</option>
+                  <option value="PM">PM</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex justify-end gap-2 mt-2">
+              <Button variant="ghost" onClick={() => { setShowAddCard(false); setEditHabitId(null); setNewHabitName(""); setNewHabitTime(""); }}>Cancel</Button>
+              <Button className="bg-purple-600 hover:bg-purple-700 text-white" onClick={submitHabit}>
+                {editHabitId ? "Save Changes" : "Add Habit"}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* 2. Bottom Navigation: Fixed at bottom for thumb-reach */}
       <nav className="fixed bottom-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-md border-t flex justify-around items-center py-3 px-4 shadow-2xl">
@@ -119,7 +251,7 @@ const [habits, setHabits] = useState<Habit[]>([]);
 
         {/* Add Habit Button: Highlighted for primary action */}
         <button 
-          onClick={handleAddHabit}
+          onClick={() => setShowAddCard(true)}
           className="flex flex-col items-center gap-1 flex-1 relative"
         >
           <div className="bg-purple-600 p-3 rounded-2xl -mt-10 shadow-xl border-4 border-white active:bg-purple-700 transition-colors">

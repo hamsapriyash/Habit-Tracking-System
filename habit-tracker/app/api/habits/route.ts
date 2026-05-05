@@ -1,10 +1,18 @@
 import { prisma } from "@/lib/prisma"
 import { NextResponse } from "next/server"
 
-export async function GET() {
+export async function GET(req: Request) {
   try {
-    // Simplified to just get all habits
-    const habits = await prisma.habit.findMany()
+    const { searchParams } = new URL(req.url)
+    const userId = searchParams.get("userId")
+
+    if (!userId || userId === "undefined") {
+      return NextResponse.json([])
+    }
+
+    const habits = await prisma.habit.findMany({
+      where: { userId }
+    })
     return NextResponse.json(habits)
   } catch (error) {
     return NextResponse.json({ error: "Failed to fetch" }, { status: 500 })
@@ -24,6 +32,7 @@ export async function POST(req: Request) {
     })
     return NextResponse.json(habit)
   } catch (error) {
-    return NextResponse.json({ error: "Could not save habit" }, { status: 500 })
+    console.error("Error creating habit:", error)
+    return NextResponse.json({ error: "Could not save habit", details: String(error) }, { status: 500 })
   }
 }
