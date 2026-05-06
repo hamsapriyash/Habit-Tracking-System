@@ -1,7 +1,7 @@
 "use client"
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { LayoutGrid, User, Flame, Plus, Pencil, Trash2 } from "lucide-react"
+import { LayoutGrid, User, Flame, Plus, Pencil, Trash2, Gift } from "lucide-react"
 import Link from "next/link"
 interface Habit {
   id: string;
@@ -267,6 +267,12 @@ export default function FullStackDashboard() {
         <Link href="/track" className="flex flex-col items-center gap-1 flex-1">
           <LayoutGrid className="w-6 h-6 text-purple-600" />
           <span className="text-[10px] font-black text-purple-600">TRACK</span>
+        </Link>
+
+        {/* Rewards Link */}
+        <Link href="/rewards" className="flex flex-col items-center gap-1 flex-1">
+          <Gift className="w-6 h-6 text-slate-400" />
+          <span className="text-[10px] font-black text-slate-400">REWARDS</span>
         </Link>
 
         {/* Profile Link */}

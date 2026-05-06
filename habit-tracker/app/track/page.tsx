@@ -7,9 +7,10 @@ import { ArrowLeft } from "lucide-react"
 import Link from "next/link"
 
 export default function TrackingPage() {
-  const [habits, setHabits] = useState<{id: string, name: string}[]>([]);
+  const [habits, setHabits] = useState<{ id: string, name: string }[]>([]);
   const [loading, setLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState("Loading...");
+  const [ticks, setTicks] = useState<Record<string, Record<number, boolean>>>({});
 
   useEffect(() => {
     const now = new Date();
@@ -22,7 +23,7 @@ export default function TrackingPage() {
           setLoading(false);
           return;
         }
-        
+
         const response = await fetch(`/api/habits?userId=${userId}`)
         const data = await response.json()
         if (Array.isArray(data)) {
@@ -30,8 +31,24 @@ export default function TrackingPage() {
         } else {
           setHabits([])
         }
+
+        // Fetch ticks for the current month
+        const currentM = now.getMonth() + 1;
+        const currentY = now.getFullYear();
+        const ticksResponse = await fetch(`/api/ticks?userId=${userId}&month=${currentM}&year=${currentY}`);
+        const ticksData = await ticksResponse.json();
+        
+        if (Array.isArray(ticksData)) {
+          const newTicks: Record<string, Record<number, boolean>> = {};
+          ticksData.forEach((t: any) => {
+            if (!newTicks[t.habitId]) newTicks[t.habitId] = {};
+            newTicks[t.habitId][t.day] = true;
+          });
+          setTicks(newTicks);
+        }
+
       } catch (error) {
-        console.error("Failed to load habits:", error)
+        console.error("Failed to load habits or ticks:", error)
       } finally {
         setLoading(false)
       }
@@ -40,6 +57,43 @@ export default function TrackingPage() {
   }, []);
 
   const days = Array.from({ length: 31 }, (_, i) => i + 1);
+
+  const toggleTick = async (habitId: string, day: number, checked: boolean) => {
+    // Optimistic UI update
+    setTicks(prev => ({
+      ...prev,
+      [habitId]: {
+        ...prev[habitId],
+        [day]: checked
+      }
+    }));
+
+    // API call to save tick
+    try {
+      const now = new Date();
+      await fetch('/api/ticks', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          habitId,
+          day,
+          month: now.getMonth() + 1,
+          year: now.getFullYear(),
+          checked
+        })
+      });
+    } catch (error) {
+      console.error("Failed to save tick", error);
+      // Revert if failed
+      setTicks(prev => ({
+        ...prev,
+        [habitId]: {
+          ...prev[habitId],
+          [day]: !checked
+        }
+      }));
+    }
+  };
 
   return (
     <div className="flex flex-col min-h-screen bg-white pb-10 w-full overflow-x-hidden">
@@ -61,12 +115,12 @@ export default function TrackingPage() {
               Getting 1% Better Each Day
             </CardTitle>
           </CardHeader>
-          
+
           <CardContent className="p-0">
             {/* The scrollable container for the 31-day matrix */}
             <div className="overflow-x-auto">
               <div className="inline-block min-w-full align-middle">
-                
+
                 {/* Header Row */}
                 <div className="grid grid-cols-[120px_repeat(31,40px)] md:grid-cols-[200px_repeat(31,1fr)] border-b bg-slate-50/30">
                   <div className="sticky left-0 z-10 bg-slate-50 p-4 text-xs font-black text-slate-400 border-r">
@@ -94,7 +148,11 @@ export default function TrackingPage() {
                       {/* Checkbox Grid */}
                       {days.map(day => (
                         <div key={day} className="flex justify-center p-2">
-                          <Checkbox className="h-5 w-5 rounded-md border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600" />
+                          <Checkbox 
+                            checked={ticks[habit.id]?.[day] || false}
+                            onCheckedChange={(checked) => toggleTick(habit.id, day, checked as boolean)}
+                            className="h-5 w-5 rounded-md border-slate-300 data-[state=checked]:bg-purple-600 data-[state=checked]:border-purple-600" 
+                          />
                         </div>
                       ))}
                     </div>
@@ -105,10 +163,12 @@ export default function TrackingPage() {
             </div>
           </CardContent>
         </Card>
-        
+
         <p className="mt-6 text-center text-xs text-slate-400 font-medium px-4">
           Tip: Swipe left on the table to see all 31 days[cite: 2].
         </p>
+
+
       </div>
     </div>
   )
