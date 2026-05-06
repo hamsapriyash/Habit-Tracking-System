@@ -2,16 +2,27 @@
 import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card"
-import { ArrowLeft, Gift, Award, TrendingUp } from "lucide-react"
+import { ArrowLeft, Gift, Award, TrendingUp, Quote } from "lucide-react"
 import Link from "next/link"
 import { BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, LineChart, Line } from "recharts"
+
+const MOTIVATIONAL_QUOTES = [
+  "Success is the sum of small efforts, repeated day in and day out.",
+  "Motivation is what gets you started. Habit is what keeps you going.",
+  "We are what we repeatedly do. Excellence, then, is not an act, but a habit.",
+  "The secret of your future is hidden in your daily routine.",
+  "Small daily improvements over time lead to stunning results."
+]
 
 export default function RewardsPage() {
   const [weeklyData, setWeeklyData] = useState<{ day: string, ticks: number }[]>([])
   const [monthlyData, setMonthlyData] = useState<{ day: string, ticks: number }[]>([])
   const [loading, setLoading] = useState(true)
+  const [randomQuote, setRandomQuote] = useState("")
 
   useEffect(() => {
+    setRandomQuote(MOTIVATIONAL_QUOTES[Math.floor(Math.random() * MOTIVATIONAL_QUOTES.length)])
+
     async function fetchData() {
       try {
         const userId = localStorage.getItem("userId");
@@ -100,6 +111,18 @@ export default function RewardsPage() {
       </div>
 
       <div className="p-6 md:p-12 flex flex-col gap-12 max-w-4xl mx-auto w-full">
+        {randomQuote && (
+          <Card className="border-none shadow-lg bg-gradient-to-r from-purple-500 to-indigo-600 text-white overflow-hidden mt-[-1rem]">
+            <CardContent className="p-6 md:p-8 flex items-center gap-6">
+              <Quote className="h-10 w-10 md:h-12 md:w-12 text-white/20 shrink-0" />
+              <div>
+                <p className="text-lg md:text-xl font-medium italic mb-2">"{randomQuote}"</p>
+                <p className="text-sm text-white/80 font-bold uppercase tracking-wider">Daily Motivation</p>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         {loading ? (
           <div className="text-center text-slate-400 font-bold p-10 animate-pulse">Loading stats...</div>
         ) : (
