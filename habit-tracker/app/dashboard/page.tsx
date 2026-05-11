@@ -3,6 +3,8 @@ import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
 import { LayoutGrid, User, Flame, Plus, Pencil, Trash2, Gift } from "lucide-react"
 import Link from "next/link"
+import DailyAffirmation from "@/components/ui/DailyAffirmation";
+
 interface Habit {
   id: string;
   name: string;
@@ -151,10 +153,13 @@ export default function FullStackDashboard() {
 
   return (
     // The 'pb-24' ensures content isn't hidden behind the bottom nav on mobile
-    <div className="flex flex-col min-h-screen bg-white pb-24 w-full overflow-x-hidden">
+    <div className="flex flex-col min-h-screen bg-white pb-24 w-full overflow-x-hidden">  
+  {/* 1. Daily Affirmation (Floating Overlay) */}
+      <DailyAffirmation />
 
       {/* 1. Main Content Area */}
       <main className="flex-1 flex flex-col w-full">
+        
 
         {/* Header: Uses responsive padding (p-6 on mobile, p-10 on tablet+) */}
         <header className="p-6 md:p-10 border-b flex flex-col items-center justify-center bg-slate-50/50 text-center">

@@ -18,34 +18,42 @@ export default function AuthPage() {
   const [errorMsg, setErrorMsg] = useState("")
 
   const handleAuth = async () => {
-    setLoading(true)
-    setErrorMsg("")
-
-    // Choose the correct endpoint based on state
-    const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup"
-
-    try {
-      const response = await fetch(endpoint, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password, username }),
-      })
-
-      const data = await response.json()
-
-      if (response.ok) {
-        // If login or signup success, save user ID and go to dashboard
-        localStorage.setItem("userId", data.userId)
-        router.push('/dashboard')
-      } else {
-        setErrorMsg(data.error || "Something went wrong")
-      }
-    } catch (error) {
-      setErrorMsg("Please enter your email and password.")
-    } finally {
-      setLoading(false)
-    }
+  // 1. Client-side validation (Stop the request if fields are empty)
+  if (!email || !password || (!isLogin && !username)) {
+    setErrorMsg("All fields are required.");
+    return;
   }
+
+  setLoading(true);
+  setErrorMsg("");
+
+  const endpoint = isLogin ? "/api/auth/login" : "/api/auth/signup";
+
+  try {
+    const response = await fetch(endpoint, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password, username }),
+    });
+
+    const data = await response.json();
+
+    if (response.ok) {
+      localStorage.setItem("userId", data.userId);
+      router.push('/dashboard');
+    } else {
+      // Show the specific error from your backend (e.g., "User not found")
+      setErrorMsg(data.error || "Invalid credentials. Please try again.");
+    }
+  } catch (error) {
+    // 2. Real error handling
+    console.error("Auth Error:", error);
+    setErrorMsg("Server connection failed. Check if your backend is running.");
+  } finally {
+    setLoading(false);
+  }
+};
+
 
   return (
     <div className="flex min-h-screen items-center justify-center px-4 py-12 bg-slate-50">
